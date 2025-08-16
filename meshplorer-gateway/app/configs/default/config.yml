@@ -1,0 +1,40 @@
+log:
+  level: "INFO"
+meshsight:
+  api:
+    url: "http://meshsight-gateway:80"
+postgres:
+  host: "meshplorer-postgres"
+  port: "5432"
+  database: "postgres"
+  username: "postgres"
+  password: "changeme"
+bot:
+  workChannells: # 工作頻道
+    - key: 1PG7OiApB1nwvP+rz05pAQ==
+      name: TestChannel
+      id: 5
+  devices: # 設備
+    - name: "abcd"
+      type: "tcp"
+      host: 192.168.0.201
+  emergencyGuardian: # 緊急守護者
+    channelName: "Emergency!" # 緊急守護者監聽頻道名稱
+    channelKey: "1PG7OiApB1nwvP+rz05pAQ==" # 緊急守護者監聽頻道 key
+    notifyChannelId: 5 # 緊急守護者通知頻道 id
+  ignoreId: # 忽略來自某 id 的訊息
+    - "0000000000"
+mqtt:
+  client:
+    - hosts:
+        - mqtt.meshtastic.org
+      identifier: meshplorer-gateway
+      password: large4cats
+      port: 1883
+      retryTime: 30
+      showErrorLog: true
+      topics:
+        - msh/TW/#
+      username: meshdev
+cwa:
+  key: "your-cwa-key"

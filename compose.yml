@@ -1,0 +1,40 @@
+# docker compose 相關服務
+services:
+  meshplorer-gateway:
+    build:
+      context: ./meshplorer-gateway
+      dockerfile: Dockerfile
+    image: meshplorer-gateway:0.0.1
+    container_name: meshplorer-gateway
+    restart: unless-stopped
+    ports:
+      - "8326:80"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./data/meshplorer-gateway/configs:/workspace/configs
+    depends_on:
+      - meshplorer-postgres
+    networks:
+      - meshsight-network_tw
+      - meshplorer-network
+  meshplorer-postgres:
+    image: postgres:17
+    pull_policy: always
+    container_name: meshplorer-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    restart: unless-stopped
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./data/meshplorer-postgres/data:/var/lib/postgresql/data
+    networks:
+      - meshplorer-network
+
+# docker compose 相關網路設定
+networks:
+  meshsight-network_tw:
+    external: true
+  meshplorer-network:
+    external: true
