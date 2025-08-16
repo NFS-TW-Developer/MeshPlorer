@@ -15,7 +15,7 @@ services:
     depends_on:
       - meshplorer-postgres
     networks:
-      - meshsight-network_tw
+      - meshsight-network
       - meshplorer-network
   meshplorer-postgres:
     image: postgres:17
@@ -34,7 +34,7 @@ services:
 
 # docker compose 相關網路設定
 networks:
-  meshsight-network_tw:
+  meshsight-network:
     external: true
   meshplorer-network:
     external: true
