@@ -44,6 +44,7 @@ class EmergencyGuardianService:
             self.logger.info(
                 f"處理緊急守護訊息，msg_id: {getattr(mp, 'id', 0)}, "
                 f"sender: {getattr(mp, 'from')}, topic: {topic}"
+                f"mp: {mp}"
             )
             
             # 解析訊息的內容
