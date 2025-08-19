@@ -210,6 +210,14 @@ class BotService:
         """將訊息路由到適當的處理器"""
         channel_name = MeshtasticUtil.get_channel_from_topic(topic)
 
+        # 排除目標非頻道廣播的訊息， !ffffffff=4294967295
+        if str(getattr(mp, "to")) != f"4294967295":
+            self.logger.info(
+                f"目標非頻道廣播的訊息，忽略處理，msg_id: {getattr(mp, 'id', 0)}，"
+                f"sender: {getattr(mp, 'from')}，to: {getattr(mp, 'to')}"
+            )
+            return
+
         # 檢查是否為緊急守護頻道
         emergency_channel = (
             self.config.get("bot", {}).get("emergencyGuardian", {}).get("channelName")

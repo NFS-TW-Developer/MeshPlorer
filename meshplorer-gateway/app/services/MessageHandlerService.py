@@ -89,14 +89,6 @@ class MessageHandlerService:
             if not await self._check_duplicate_message(mp):
                 return
 
-            # 排除目標非頻道廣播的訊息， !ffffffff=4294967295
-            if str(getattr(mp, "to")) != f"4294967295":
-                self.logger.info(
-                    f"目標非頻道廣播的訊息，忽略處理，msg_id: {getattr(mp, 'id', 0)}，"
-                    f"sender: {getattr(mp, 'from')}，to: {getattr(mp, 'to')}"
-                )
-                return
-
             self.logger.info(
                 f"處理頻道訊息，channel_id: {channel_id}, msg_id: {getattr(mp, 'id', 0)}, "
                 f"sender: {getattr(mp, 'from')}，to: {getattr(mp, 'to')}"
