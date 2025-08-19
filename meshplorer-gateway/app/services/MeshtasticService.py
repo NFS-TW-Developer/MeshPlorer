@@ -25,7 +25,7 @@ class MeshtasticService:
         retry_count: int = 0,
     ) -> Optional[Any]:
         """傳送封包到 Meshtastic 網路中"""
-        await asyncio.sleep(random.uniform(0.5, 3))  # 隨機延遲0.5~3秒
+        await asyncio.sleep(random.uniform(1, 3))  # 隨機延遲1~3秒
         
         try:
             # 隨機從設定檔中取得一個 Meshtastic 介面

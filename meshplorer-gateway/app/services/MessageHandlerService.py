@@ -91,7 +91,8 @@ class MessageHandlerService:
 
             self.logger.info(
                 f"處理頻道訊息，channel_id: {channel_id}, msg_id: {getattr(mp, 'id', 0)}, "
-                f"sender: {getattr(mp, 'from')}，to: {getattr(mp, 'to')}"
+                f"sender: {getattr(mp, 'from')}，to: {getattr(mp, 'to')}, "
+                f"mp: {str(mp).replace('\n', ' ')}"
             )
 
             # 取得解碼資料
@@ -232,8 +233,7 @@ class MessageHandlerService:
         """處理指令訊息"""
         self.logger.info(
             f"收到來自頻道 {channel_id} 的指令，msg_id: {getattr(mp, 'id', 0)}，"
-            f"sender: {getattr(mp, 'from')}，指令: {command}，"
-            f"mp: {mp}"
+            f"sender: {getattr(mp, 'from')}，指令: {command}"
         )
 
         # 先發送機器人 emoji 表示收到
