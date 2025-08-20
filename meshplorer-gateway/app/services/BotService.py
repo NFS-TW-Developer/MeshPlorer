@@ -209,12 +209,15 @@ class BotService:
     async def _route_message(self, mp: mesh_pb2.MeshPacket, topic: str):
         """將訊息路由到適當的處理器"""
         channel_name = MeshtasticUtil.get_channel_from_topic(topic)
+        sender_id = MeshtasticUtil.get_sender_id_from_topic(topic)
 
         # 排除目標非頻道廣播的訊息， !ffffffff=4294967295
         if str(getattr(mp, "to")) != f"4294967295":
             self.logger.info(
                 f"目標非頻道廣播的訊息，忽略處理，msg_id: {getattr(mp, 'id', 0)}，"
-                f"sender: {getattr(mp, 'from')}，to: {getattr(mp, 'to')}"
+                f"sender: {sender_id}({MeshtasticUtil.convert_node_id_from_int_to_hex(sender_id)})，"
+                f"from: {getattr(mp, 'from')}({MeshtasticUtil.convert_node_id_from_int_to_hex(getattr(mp, 'from'))})，"
+                f"to: {getattr(mp, 'to')}({MeshtasticUtil.convert_node_id_from_int_to_hex(getattr(mp, 'to'))})"
             )
             return
 
@@ -223,12 +226,24 @@ class BotService:
             self.config.get("bot", {}).get("emergencyGuardian", {}).get("channelName")
         )
         if channel_name == emergency_channel:
+            self.logger.info(
+                f"處理緊急守護頻道訊息，channel_id: {emergency_channel}，"
+                f"sender: {sender_id}({MeshtasticUtil.convert_node_id_from_int_to_hex(sender_id)})，"
+                f"from: {getattr(mp, 'from')}({MeshtasticUtil.convert_node_id_from_int_to_hex(getattr(mp, 'from'))})，"
+                f"to: {getattr(mp, 'to')}({MeshtasticUtil.convert_node_id_from_int_to_hex(getattr(mp, 'to'))})"
+            )
             await self.emergency_service.handle_emergency_message(mp, topic)
             return
 
         # 檢查是否為工作頻道
         work_channel_id = self._get_work_channel_id(channel_name)
         if work_channel_id:
+            self.logger.info(
+                f"處理工作頻道訊息，channel_id: {work_channel_id}，"
+                f"sender: {sender_id}({MeshtasticUtil.convert_node_id_from_int_to_hex(sender_id)})，"
+                f"from: {getattr(mp, 'from')}({MeshtasticUtil.convert_node_id_from_int_to_hex(getattr(mp, 'from'))})，"
+                f"to: {getattr(mp, 'to')}({MeshtasticUtil.convert_node_id_from_int_to_hex(getattr(mp, 'to'))})"
+            )
             # 非阻塞處理訊息
             asyncio.create_task(
                 self.message_handler.handle_channel_message(mp, work_channel_id)

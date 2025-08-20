@@ -116,3 +116,16 @@ class MeshtasticUtil:
                 else topic.split("/")[-2]
             )
         )
+
+    @staticmethod
+    def get_sender_id_from_topic(topic: str) -> int:
+        """從主題中取得發送者 ID"""
+        node_id = None
+        if topic and "/" in topic and topic.split("/")[-1] != "":
+            try:
+                node_id = MeshtasticUtil.convert_node_id_from_hex_to_int(
+                    topic.split("/")[-1]
+                )
+            except Exception as e:
+                return None
+        return node_id
