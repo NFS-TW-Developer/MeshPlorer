@@ -65,7 +65,11 @@ class ConfigUtil:
                         with open(
                             self.config_path, "w", encoding="utf-8"
                         ) as config_file:
-                            yaml.dump(current_config, config_file)
+                            yaml.dump(
+                                current_config,
+                                config_file,
+                                allow_unicode=True,
+                            )
                     # 完成後刪除備份檔案
                     if os.path.exists(backup_path):
                         os.remove(backup_path)
@@ -155,7 +159,11 @@ class ConfigUtil:
                     d = d[k]
                 d[keys[-1]] = value
                 with open(self.config_path, "w", encoding="utf-8") as file:
-                    yaml.dump(config, file)
+                    yaml.dump(
+                        config,
+                        file,
+                        allow_unicode=True,
+                    )
         except Exception as e:
             self.logger.error("編輯設定值時發生錯誤: %s", traceback.format_exc())
             raise e
