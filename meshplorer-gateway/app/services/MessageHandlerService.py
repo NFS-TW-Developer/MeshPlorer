@@ -475,12 +475,12 @@ class MessageHandlerService:
             if response:
                 response = f"嗨！{sender_tag}，{response}"
                 # 發送 AI 回應，自動分段處理
-                max_length = 80
+                max_length = 60
                 segments = [response[i:i+max_length] for i in range(0, len(response), max_length)]
                 previous_packet_id = getattr(mp, "id", None)  # 第一段要回覆原始問題
                 
                 for i, segment in enumerate(segments):
-                    segment_text = f"{segment} [{i+1}/{len(segments)}]"
+                    segment_text = f"{segment}\n⚠️ AI 可能會出錯，請查核重要資訊。[{i+1}/{len(segments)}]"
                     segment_packet = self.meshtastic_service.create_text_packet(
                         channel_id=channel_id, text=segment_text, reply_id=previous_packet_id
                     )
