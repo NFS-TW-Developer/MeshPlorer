@@ -196,7 +196,7 @@ class BotService:
 
     def _is_message_timely(self, mp: mesh_pb2.MeshPacket) -> bool:
         """檢查訊息是否在時效內"""
-        if hasattr(mp, "rx_time") and mp.rx_time < time.time() - 30:
+        if hasattr(mp, "rx_time") and mp.rx_time < time.time() - 60:
             self.logger.info(
                 f"忽略過期封包，rx_time: "
                 f"{datetime.fromtimestamp(mp.rx_time, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}/"
