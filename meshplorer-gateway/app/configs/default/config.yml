@@ -43,3 +43,7 @@ adMessages:
   - "🌦️想知道今天穿什麼？叫我一聲 @nfs.tw weather，馬上報你當地天氣！（記得開定位分享喔 📍）"
   - "🗺️找附近節點？快上 MeshSight 探索起來吧 🔍 https://meshsight.nfs.tw/"
   - "🧭我是 MeshPlorer，一名穿梭於 Meshtastic 網路中的探索者！"
+dify:
+  api:
+    base: "https://api.dify.ai/v1"
+    key: "your-dify-key"
