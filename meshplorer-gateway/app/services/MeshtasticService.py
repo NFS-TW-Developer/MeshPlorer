@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import time
 from typing import Optional, Dict, Any
 import meshtastic
 import meshtastic.tcp_interface
@@ -10,12 +11,15 @@ from app.utils.ConfigUtil import ConfigUtil
 
 class MeshtasticService:
     """Meshtastic 服務，負責封包傳送和裝置相關管理"""
-    
+
     def __init__(self):
         self.config = ConfigUtil().read_config()
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(self.config.get("log", {}).get("level", "INFO").upper())
-        
+        # 裝置靜默控制
+        self.device_silence = {}  # device_id: timestamp
+        self.device_silence_duration = 5  # 秒，保留 5 秒
+
     async def send_packet(
         self,
         mesh_packet: mesh_pb2.MeshPacket,
@@ -26,36 +30,63 @@ class MeshtasticService:
     ) -> Optional[Any]:
         """傳送封包到 Meshtastic 網路中"""
         await asyncio.sleep(random.uniform(1, 3))  # 隨機延遲1~3秒
-        
+
         try:
             # 隨機從設定檔中取得一個 Meshtastic 介面
             devices = self.config.get("bot", {}).get("devices", [])
             if not devices:
                 self.logger.error("沒有可用的 Meshtastic 介面")
                 return None
-                
+
+            # 隨機選擇一個 Meshtastic 介面
             device = random.choice(devices)
+            # 檢查裝置靜默控制
+            if device.get("name") in self.device_silence:
+                if self.device_silence[device.get("name")] > time.time():
+                    self.logger.info(
+                        f"裝置 {device.get('name')} 處於靜默狀態，重新選擇裝置"
+                    )
+                    return await self.send_packet(
+                        mesh_packet=mesh_packet,
+                        destination_id=destination_id,
+                        want_ack=want_ack,
+                        hop_limit=hop_limit,
+                        retry_count=retry_count,
+                    )
+
+            # 更新裝置靜默控制
+            self.device_silence[device.get("name")] = (
+                time.time() + self.device_silence_duration
+            )
+
+            # 建立介面
             interface = await self._create_interface(device)
-            
+
             if not interface:
-                return None
-                
+                return await self.send_packet(
+                    mesh_packet=mesh_packet,
+                    destination_id=destination_id,
+                    want_ack=want_ack,
+                    hop_limit=hop_limit,
+                    retry_count=retry_count,
+                )
+
             response = interface._sendPacket(
                 meshPacket=mesh_packet,
                 destinationId=destination_id,
                 wantAck=want_ack,
                 hopLimit=hop_limit,
             )
-            
+
             self.logger.info(
                 f"已傳送封包，device {device.get('name')}: "
                 f"channel={getattr(mesh_packet, 'channel')}, "
                 f"id={getattr(mesh_packet, 'id')}, "
                 f"destination_id={destination_id}"
             )
-            
+
             return response
-            
+
         except Exception as e:
             self.logger.error(f"傳送封包失敗: {e}")
             if retry_count < 3:
@@ -71,14 +102,13 @@ class MeshtasticService:
             return None
         finally:
             await asyncio.sleep(random.uniform(3, 5))  # 確保介面有足夠時間處理封包
-            
+
     async def _create_interface(self, device: Dict[str, Any]):
         """建立 Meshtastic 介面連接"""
         try:
             if device.get("type") == "tcp":
                 interface = meshtastic.tcp_interface.TCPInterface(
-                    hostname=device.get("host"), 
-                    connectNow=False
+                    hostname=device.get("host"), connectNow=False
                 )
                 interface.myConnect()
                 return interface
@@ -88,14 +118,14 @@ class MeshtasticService:
         except Exception as e:
             self.logger.error(f"建立介面連接失敗: {e}")
             return None
-            
+
     def create_text_packet(
         self,
         channel_id: int,
         text: str,
         reply_id: Optional[int] = None,
         emoji: bool = False,
-        priority: mesh_pb2.MeshPacket.Priority = mesh_pb2.MeshPacket.Priority.BACKGROUND
+        priority: mesh_pb2.MeshPacket.Priority = mesh_pb2.MeshPacket.Priority.BACKGROUND,
     ) -> mesh_pb2.MeshPacket:
         """建立文字訊息的封包"""
         return mesh_pb2.MeshPacket(
@@ -109,17 +139,11 @@ class MeshtasticService:
             ),
             priority=priority,
         )
-        
+
     def create_emoji_packet(
-        self,
-        channel_id: int,
-        emoji: str,
-        reply_id: Optional[int] = None
+        self, channel_id: int, emoji: str, reply_id: Optional[int] = None
     ) -> mesh_pb2.MeshPacket:
         """建立 emoji 封包"""
         return self.create_text_packet(
-            channel_id=channel_id,
-            text=emoji,
-            reply_id=reply_id,
-            emoji=True
+            channel_id=channel_id, text=emoji, reply_id=reply_id, emoji=True
         )

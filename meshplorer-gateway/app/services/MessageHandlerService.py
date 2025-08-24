@@ -475,7 +475,7 @@ class MessageHandlerService:
             if response:
                 response = f"嗨！{sender_tag}，{response}"
                 # 發送 AI 回應，自動分段處理
-                max_length = 60
+                max_length = 50
                 segments = [response[i:i+max_length] for i in range(0, len(response), max_length)]
                 previous_packet_id = getattr(mp, "id", None)  # 第一段要回覆原始問題
                 
