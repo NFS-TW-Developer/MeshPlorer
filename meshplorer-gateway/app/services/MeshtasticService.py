@@ -108,7 +108,9 @@ class MeshtasticService:
         try:
             if device.get("type") == "tcp":
                 interface = meshtastic.tcp_interface.TCPInterface(
-                    hostname=device.get("host"), connectNow=False
+                    hostname=device.get("host"),
+                    portNumber=device.get("port") or 4403, 
+                    connectNow=False,
                 )
                 interface.myConnect()
                 return interface
