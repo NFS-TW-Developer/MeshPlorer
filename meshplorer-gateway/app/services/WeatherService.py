@@ -99,7 +99,7 @@ class WeatherService:
         """發送無位置資訊的回應"""
         packet = self.meshtastic_service.create_text_packet(
             channel_id=channel_id,
-            text=f"嗨！{sender_tag}，我無法查詢天氣，因為沒有您所在位置的資訊。",
+            text=f"嗨！{sender_tag}，我無法查詢天氣，因為沒有您所在位置的資訊。節點定位分享指南 https://ppt.cc/fKuFRx",
             reply_id=getattr(mp, "id", None)
         )
         await self.meshtastic_service.send_packet(
@@ -112,7 +112,7 @@ class WeatherService:
         """發送處理中訊息"""
         packet = self.meshtastic_service.create_text_packet(
             channel_id=channel_id,
-            text=f"嗨！{sender_tag}，正在為您查詢天氣，若未收到回應，請稍後再試。",
+            text=f"嗨！{sender_tag}，正在為您查詢天氣，若未收到回應，請稍後再試。節點定位分享指南 https://ppt.cc/fKuFRx",
             reply_id=getattr(mp, "id", None)
         )
         return await self.meshtastic_service.send_packet(
