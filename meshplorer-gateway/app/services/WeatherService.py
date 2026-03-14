@@ -17,28 +17,34 @@ class WeatherService:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(self.config.get("log", {}).get("level", "INFO").upper())
         self.meshtastic_service = meshtastic_service
-        self.weather_silence_until: datetime = datetime.now(timezone.utc)
+        # 依發送者（from）個別靜默，key 為節點 ID
+        self.weather_silence_until: Dict[str, datetime] = {}
 
     async def handle_weather_request(
         self, mp: Any, channel_id: int, sender_tag: str
     ) -> None:
         """處理天氣查詢的請求"""
         try:
-            # 檢查靜默期間
-            if self.weather_silence_until > datetime.now(timezone.utc):
-                self.logger.info(
-                    f"尚未到天氣查詢的靜默截止時間: "
-                    f"now: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}, "
-                    f"silence_until: {self.weather_silence_until.strftime('%Y-%m-%d %H:%M:%S UTC')}"
-                )
-                # 發送靜默的 emoji
-                await self._send_silence_emoji(mp, channel_id)
-                return
+            now = datetime.now(timezone.utc)
+            sender_id = str(getattr(mp, "from", ""))
 
-            # 設定靜默期間
-            self.weather_silence_until = datetime.now(timezone.utc) + timedelta(
-                minutes=1
-            )
+            # 檢查該發送者的靜默期間
+            if sender_id in self.weather_silence_until:
+                silence_until = self.weather_silence_until[sender_id]
+                if silence_until <= now:
+                    # 已過期，移除以節省記憶體
+                    del self.weather_silence_until[sender_id]
+                elif silence_until > now:
+                    self.logger.info(
+                        f"發送者 {sender_tag}({sender_id}) 尚未到天氣查詢靜默截止時間: "
+                        f"now: {now.strftime('%Y-%m-%d %H:%M:%S UTC')}, "
+                        f"silence_until: {silence_until.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                    )
+                    await self._send_silence_emoji(mp, channel_id)
+                    return
+
+            # 設定該發送者的靜默期間（10 分鐘）
+            self.weather_silence_until[sender_id] = now + timedelta(minutes=10)
 
             # 取得位置資訊
             city, district = await self._get_location_info(mp)
