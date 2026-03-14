@@ -29,6 +29,8 @@ class MessageHandlerService:
         self.seen_message_ids = {}  # id: timestamp
         self.seen_message_expire = 600  # 秒，保留 10 分鐘
         self.tested_emoji_silence_until: datetime = datetime.now(timezone.utc)
+        # 一般指令全體靜默，靜默期內不回覆
+        self.general_command_silence_until: datetime = datetime.now(timezone.utc)
 
         # 廣告訊息清單 - 從配置檔案讀取
         self.ad_messages = self.config.get("adMessages", [])
@@ -399,6 +401,17 @@ class MessageHandlerService:
         self, mp: Any, channel_id: int, command: str, sender_tag: str
     ) -> None:
         """處理一般指令（顯示廣告訊息）"""
+        now = datetime.now(timezone.utc)
+        # 全體靜默期間：只 return 不回覆
+        if now < self.general_command_silence_until:
+            self.logger.info(
+                f"一般指令尚在靜默期，忽略本次，"
+                f"now: {now.strftime('%Y-%m-%d %H:%M:%S UTC')}, "
+                f"silence_until: {self.general_command_silence_until.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+            )
+            return
+        self.general_command_silence_until = now + timedelta(minutes=5)
+
         # 清理並限制指令長度
         command_clean = command.replace("\n", " ").strip()
         if len(command_clean) > 50:
@@ -435,7 +448,7 @@ class MessageHandlerService:
             f"收到來自頻道 {channel_id} 的問 AI 指令，msg_id: {getattr(mp, 'id', 0)}，"
             f"sender: {sender_tag}, 參數: {args}"
         )
-        
+
         # 檢查查詢內容
         if not args.strip():
             reply_text = f"嗨！{sender_tag}，請提供您要與 AI 互動的內容，例如： @nfs.tw askai 說個笑話"
@@ -446,61 +459,71 @@ class MessageHandlerService:
                 mesh_packet=reply_packet, destination_id="^all", want_ack=True
             )
             return
-        
+
         try:
             # 初始化 DifyUtil
             from app.utils.DifyUtil import DifyUtil
+
             dify_util = DifyUtil()
-            
+
             # 檢查設定
             if not dify_util.is_configured():
                 reply_text = f"嗨！{sender_tag}，AI 服務還沒設定好。"
                 reply_packet = self.meshtastic_service.create_text_packet(
-                    channel_id=channel_id, text=reply_text, reply_id=getattr(mp, "id", None)
+                    channel_id=channel_id,
+                    text=reply_text,
+                    reply_id=getattr(mp, "id", None),
                 )
                 await self.meshtastic_service.send_packet(
                     mesh_packet=reply_packet, destination_id="^all", want_ack=True
                 )
                 return
-            
+
             # 呼叫 Dify API
-            user_id = str(getattr(mp, 'from', 'unknown'))
+            user_id = str(getattr(mp, "from", "unknown"))
             response = await dify_util.send_chat_message_streaming(
-                query=args.strip(),
-                user=user_id,
-                conversation_id=""  # 每次都是新的對話
+                query=args.strip(), user=user_id, conversation_id=""  # 每次都是新的對話
             )
-            
+
             # 處理回應
             if response:
                 response = f"嗨！{sender_tag}，{response}"
                 # 發送 AI 回應，自動分段處理
                 max_length = 50
-                segments = [response[i:i+max_length] for i in range(0, len(response), max_length)]
+                segments = [
+                    response[i : i + max_length]
+                    for i in range(0, len(response), max_length)
+                ]
                 previous_packet_id = getattr(mp, "id", None)  # 第一段要回覆原始問題
-                
+
                 for i, segment in enumerate(segments):
                     segment_text = f"{segment}\n⚠️ AI 可能會出錯，請查核重要資訊。[{i+1}/{len(segments)}]"
                     segment_packet = self.meshtastic_service.create_text_packet(
-                        channel_id=channel_id, text=segment_text, reply_id=previous_packet_id
+                        channel_id=channel_id,
+                        text=segment_text,
+                        reply_id=previous_packet_id,
                     )
                     await self.meshtastic_service.send_packet(
                         mesh_packet=segment_packet, destination_id="^all", want_ack=True
                     )
-                    previous_packet_id = getattr(segment_packet, "id", None)  # 記錄這一段的封包ID，下一段要回覆這一段
+                    previous_packet_id = getattr(
+                        segment_packet, "id", None
+                    )  # 記錄這一段的封包ID，下一段要回覆這一段
                     await asyncio.sleep(1)  # 避免訊息發送太快
-                
+
                 self.logger.info(f"成功發送 AI 回應，用戶: {user_id}")
             else:
                 # 發送錯誤訊息
                 error_text = f"嗨！{sender_tag}，AI 服務暫時沒辦法回應。"
                 error_packet = self.meshtastic_service.create_text_packet(
-                    channel_id=channel_id, text=error_text, reply_id=getattr(mp, "id", None)
+                    channel_id=channel_id,
+                    text=error_text,
+                    reply_id=getattr(mp, "id", None),
                 )
                 await self.meshtastic_service.send_packet(
                     mesh_packet=error_packet, destination_id="^all", want_ack=True
                 )
-                
+
         except Exception as e:
             self.logger.error(f"處理 AI 查詢時發生錯誤: {e}")
             # 發送錯誤訊息
@@ -511,4 +534,3 @@ class MessageHandlerService:
             await self.meshtastic_service.send_packet(
                 mesh_packet=error_packet, destination_id="^all", want_ack=True
             )
-        
