@@ -27,9 +27,11 @@ class MeshtasticService:
         want_ack: bool = False,
         hop_limit: int = 3,
         retry_count: int = 0,
+        need_wait: bool = True,
     ) -> Optional[Any]:
         """傳送封包到 Meshtastic 網路中"""
-        await asyncio.sleep(random.uniform(1, 3))  # 隨機延遲1~3秒
+        if need_wait:
+            await asyncio.sleep(random.uniform(1, 3))  # 隨機延遲1~3秒
 
         try:
             # 隨機從設定檔中取得一個 Meshtastic 介面
@@ -52,6 +54,7 @@ class MeshtasticService:
                         want_ack=want_ack,
                         hop_limit=hop_limit,
                         retry_count=retry_count,
+                        need_wait=False,
                     )
 
             # 更新裝置靜默控制
@@ -61,15 +64,6 @@ class MeshtasticService:
 
             # 建立介面
             interface = await self._create_interface(device)
-
-            if not interface:
-                return await self.send_packet(
-                    mesh_packet=mesh_packet,
-                    destination_id=destination_id,
-                    want_ack=want_ack,
-                    hop_limit=hop_limit,
-                    retry_count=retry_count,
-                )
 
             response = interface._sendPacket(
                 meshPacket=mesh_packet,
@@ -98,6 +92,7 @@ class MeshtasticService:
                     want_ack=want_ack,
                     hop_limit=hop_limit,
                     retry_count=retry_count + 1,
+                    need_wait=False,
                 )
             return None
         finally:
@@ -109,7 +104,7 @@ class MeshtasticService:
             if device.get("type") == "tcp":
                 interface = meshtastic.tcp_interface.TCPInterface(
                     hostname=device.get("host"),
-                    portNumber=device.get("port") or 4403, 
+                    portNumber=device.get("port") or 4403,
                     connectNow=False,
                 )
                 interface.myConnect()
