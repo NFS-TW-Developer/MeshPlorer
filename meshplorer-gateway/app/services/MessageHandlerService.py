@@ -31,6 +31,8 @@ class MessageHandlerService:
         self.tested_emoji_silence_until: datetime = datetime.now(timezone.utc)
         # 一般指令全體靜默，靜默期內不回覆
         self.general_command_silence_until: datetime = datetime.now(timezone.utc)
+        # ab 指令依發送者靜默
+        self.ab_command_silence_until: Dict[str, datetime] = {}
 
         # 廣告訊息清單 - 從配置檔案讀取
         self.ad_messages = self.config.get("adMessages", [])
@@ -268,6 +270,22 @@ class MessageHandlerService:
         self, mp: Any, channel_id: int, sender_tag: str, args: str = ""
     ) -> None:
         """處理 ARBot 呼叫指令"""
+        now = datetime.now(timezone.utc)
+        sender_id = str(getattr(mp, "from", ""))
+
+        # 依發送者靜默 5 分鐘，靜默期內只 return 不回覆
+        if sender_id in self.ab_command_silence_until:
+            silence_until = self.ab_command_silence_until[sender_id]
+            if silence_until <= now:
+                del self.ab_command_silence_until[sender_id]
+            elif silence_until > now:
+                self.logger.info(
+                    f"發送者 {sender_tag}({sender_id}) ab 指令尚在靜默期，忽略本次，"
+                    f"silence_until: {silence_until.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                )
+                return
+        self.ab_command_silence_until[sender_id] = now + timedelta(minutes=5)
+
         # 如果沒有提供參數，使用預設值
         ab_command = args.strip() if args.strip() else "test"
 
