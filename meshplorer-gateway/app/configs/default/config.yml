@@ -31,7 +31,8 @@ mqtt:
         - mqtt.meshtastic.org
       identifier: meshplorer-gateway
       password: large4cats
-      port: 1883
+      port: 8883
+      tls: true
       retryTime: 30
       showErrorLog: true
       topics:

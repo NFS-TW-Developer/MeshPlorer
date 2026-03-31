@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import logging
+import ssl
 from typing import Dict, List, Callable, Any
 import aiomqtt
 from app.utils.ConfigUtil import ConfigUtil
@@ -37,12 +38,16 @@ class MqttService:
         """訂閱到指定的主機端"""
         while True:
             try:
+                tls_enabled = client_config.get("tls", False)
+                tls_context = ssl.create_default_context() if tls_enabled else None
+
                 async with aiomqtt.Client(
                     hostname=host,
                     port=client_config["port"],
                     identifier=client_config["identifier"],
                     username=client_config["username"],
                     password=client_config["password"],
+                    tls_context=tls_context,
                 ) as client:
                     # 訂閱多個主題
                     for topic in client_config["topics"]:
